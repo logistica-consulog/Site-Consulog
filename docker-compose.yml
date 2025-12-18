@@ -1,0 +1,47 @@
+services:
+  # ============================================
+  # Aplicação Next.js (Development)
+  # ============================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: logsmart-frontend:dev
+    container_name: logsmart-frontend-dev
+    restart: unless-stopped
+
+    # Portas
+    ports:
+      - "3000:3000"
+
+    # Variáveis de ambiente
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_BASE_URL=https://portal.logsmart.com.br/api/v1
+
+    # Volumes para hot reload
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+    # Rede
+    networks:
+      - logsmart-network
+
+# ============================================
+# Redes
+# ============================================
+networks:
+  logsmart-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  logs:
+    driver: local

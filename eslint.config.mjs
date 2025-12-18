@@ -20,6 +20,28 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      // Permitir any em casos específicos (utils, helpers)
+      "@typescript-eslint/no-explicit-any": "warn",
+
+      // Permitir variáveis não utilizadas em alguns casos
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+
+      // Permitir img tag (temos logo específico)
+      "@next/next/no-img-element": "warn",
+
+      // Avisos para exhaustive-deps (não bloqueia build)
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

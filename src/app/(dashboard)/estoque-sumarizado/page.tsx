@@ -1,0 +1,160 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { StockSummaryFilters } from '@/components/stock-summary/StockSummaryFilters'
+import { StockSummaryTable } from '@/components/stock-summary/StockSummaryTable'
+import { StockSummaryStats } from '@/components/stock-summary/StockSummaryStats'
+import { stockSummaryService } from '@/services/stock-summary'
+import { StockSummaryDisplay, StockSummaryFilters as FilterType } from '@/types/stock-summary'
+import { Button } from '@/components/ui/Button'
+import { Download, RefreshCw } from 'lucide-react'
+
+export default function EstoqueSumarizado() {
+  const [stockSummary, setStockSummary] = useState<StockSummaryDisplay[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filters, setFilters] = useState<FilterType>({})
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastLoadTime, setLastLoadTime] = useState<number | null>(null)
+  const [cacheHit, setCacheHit] = useState(false)
+  
+  const loadStockSummary = async (newFilters: FilterType = filters) => {
+    try {
+      setLoading(true)
+      setError('')
+      setCacheHit(false)
+      
+      const startTime = Date.now()
+      const items = await stockSummaryService.getStockSummary(newFilters)
+      const loadTime = Date.now() - startTime
+      
+      setStockSummary(items)
+      setLastLoadTime(loadTime)
+      
+      // Check if this was likely a cache hit (very fast response)
+      setCacheHit(loadTime < 100)
+    } catch (err) {
+      setError('Erro ao carregar dados de estoque sumarizado. Tente novamente.')
+      console.error('Error loading stock summary:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadStockSummary(filters)
+    setRefreshing(false)
+  }
+  
+  const handleFilterChange = (newFilters: FilterType) => {
+    setFilters(newFilters)
+    loadStockSummary(newFilters)
+  }
+  
+  const handleExport = async () => {
+    try {
+      const blob = await stockSummaryService.exportStockSummary(filters)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `estoque-sumarizado_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Error exporting stock summary:', err)
+      setError('Erro ao exportar dados de estoque sumarizado.')
+    }
+  }
+
+  useEffect(() => {
+    loadStockSummary()
+  }, [])
+  
+  const stats = stockSummaryService.getStockSummaryStats(stockSummary)
+
+  return (
+    <>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Estoque Sumarizado
+                </h1>
+                <div className="flex items-center space-x-4 mt-1">
+                  <p className="text-sm text-gray-500">
+                    Visualize o resumo do estoque por nota fiscal e emitente
+                  </p>
+                  {lastLoadTime && (
+                    <div className="flex items-center space-x-2">
+                      {cacheHit ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ⚡ Cache ({lastLoadTime}ms)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          📡 API ({lastLoadTime}ms)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  loading={refreshing}
+                  disabled={loading}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={loading}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Section - Top */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <StockSummaryFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            loading={loading}
+          />
+        </div>
+      </div>
+
+      {/* Main Content - Stats and Stock Summary Table */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            {error}
+          </div>
+        )}
+
+        {/* Statistics Cards */}
+        <StockSummaryStats stats={stats} loading={loading} />
+
+        {/* Stock Summary Table */}
+        <StockSummaryTable stockSummary={stockSummary} loading={loading} />
+      </div>
+    </>
+  )
+}
