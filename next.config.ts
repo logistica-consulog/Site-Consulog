@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Output standalone para deploy otimizado
-  output: 'standalone',
-
   // Compressão habilitada
   compress: true,
 
