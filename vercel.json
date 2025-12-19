@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["gru1"],
-  "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "https://portal.logsmart.com.br/api/v1"
-  }
-}
