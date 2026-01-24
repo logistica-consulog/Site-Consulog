@@ -1,4 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import {
+  handleExternalApiResponse,
+  extractAuthToken,
+  createUnauthorizedResponse,
+  createInternalServerErrorResponse,
+} from '../../../_utils/api-handler'
 
 /**
  * GET /api/pedidos/lotes/geral
@@ -10,14 +16,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const authorization = request.headers.get('authorization')
 
-    if (!authorization) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
+    const token = extractAuthToken(authorization)
+    if (!token) {
+      return createUnauthorizedResponse()
     }
-
-    const token = authorization.replace('Bearer ', '')
 
     // Construir URL com parâmetros de paginação
     let url = `https://portal.logsmart.com.br/api/v1/pedidos/lotes/geral?token=${token}`
@@ -34,8 +36,6 @@ export async function GET(request: NextRequest) {
       url += `&per_page=${perPage}`
     }
 
-    console.log('🔄 Buscando pedidos de lotes/geral:', url.replace(token, 'TOKEN_HIDDEN'))
-
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -44,41 +44,15 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(30000), // 30 second timeout
     })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Erro ao buscar lotes/geral:', response.status, errorText)
-      return NextResponse.json(
-        {
-          error: 'Failed to fetch orders from lotes/geral',
-          status: response.status,
-          details: errorText
-        },
-        { status: response.status }
-      )
-    }
-
-    const data = await response.json()
-    console.log(`✅ Lotes/geral retornou ${data.data?.dados?.length || 0} pedidos`)
-
-    return NextResponse.json(data, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-store, must-revalidate',
-      },
-    })
+    // Use centralized handler for consistent error handling
+    return handleExternalApiResponse(response, 'Pedidos - Lotes Geral')
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error('❌ Erro interno ao buscar lotes/geral:', error.message)
-      return NextResponse.json(
-        { error: 'Internal server error', details: error.message },
-        { status: 500 }
-      )
+      return createInternalServerErrorResponse(error.message)
     }
 
     console.error('❌ Erro desconhecido ao buscar lotes/geral')
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return createInternalServerErrorResponse()
   }
 }

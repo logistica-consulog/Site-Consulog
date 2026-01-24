@@ -1,19 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import {
+  handleExternalApiResponse,
+  extractAuthToken,
+  createUnauthorizedResponse,
+  createInternalServerErrorResponse,
+} from '../../_utils/api-handler'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const authorization = request.headers.get('authorization')
-    
-    if (!authorization) {
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      )
-    }
 
-    // Extract token from Authorization header (Bearer token)
-    const token = authorization.replace('Bearer ', '')
+    const token = extractAuthToken(authorization)
+    if (!token) {
+      return createUnauthorizedResponse()
+    }
 
     // Build the query parameters for the external API
     const queryParams = new URLSearchParams({ token })
@@ -37,44 +38,10 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(30000), // 30 second timeout
     })
 
-    // Check if response is JSON
-    const contentType = response.headers.get('content-type')
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Stock API error:', response.status, errorText.substring(0, 500))
-      return NextResponse.json(
-        { error: 'Failed to fetch stock data', status: response.status },
-        { status: response.status }
-      )
-    }
-
-    // Try to parse as JSON, if it fails, log the response
-    if (contentType && contentType.includes('application/json')) {
-      const data = await response.json()
-      return NextResponse.json(data, { status: 200 })
-    } else {
-      const textData = await response.text()
-      console.log('Non-JSON response received:', textData.substring(0, 500))
-      
-      // If it's HTML, it might be a login page redirect or authentication issue
-      if (textData.includes('<!DOCTYPE') || textData.includes('<html>')) {
-        return NextResponse.json(
-          { error: 'Authentication failed - received HTML response' },
-          { status: 401 }
-        )
-      }
-      
-      return NextResponse.json(
-        { error: 'Invalid response format', contentType },
-        { status: 500 }
-      )
-    }
+    // Use centralized handler for consistent error handling
+    return handleExternalApiResponse(response, 'Stock - Saldo Geral')
   } catch (error) {
     console.error('Stock proxy error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return createInternalServerErrorResponse()
   }
 }

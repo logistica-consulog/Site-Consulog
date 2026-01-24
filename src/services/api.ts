@@ -30,12 +30,26 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, redirect to login
-      localStorage.removeItem('auth-storage')
-      window.location.href = '/login'
+    const status = error.response?.status
+
+    // Only logout on 401 (Unauthorized) - real authentication issues
+    // Do NOT logout on 502 (Bad Gateway) or 503 (Service Unavailable)
+    // Those indicate external API problems, not auth issues
+    if (status === 401) {
+      // Additional check: only logout if it's truly an auth error
+      // If the error message indicates external API issue, don't logout
+      const errorData = error.response?.data as any
+      const isExternalApiError =
+        errorData?.error?.includes('External API') ||
+        errorData?.errorCode
+
+      if (!isExternalApiError) {
+        // Real authentication failure - logout
+        localStorage.removeItem('auth-storage')
+        window.location.href = '/login'
+      }
     }
-    
+
     return Promise.reject(error)
   }
 )

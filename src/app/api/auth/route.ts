@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createInternalServerErrorResponse } from '../_utils/api-handler'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,9 +26,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: 200 })
   } catch (error) {
     console.error('Auth proxy error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return createInternalServerErrorResponse()
   }
 }
