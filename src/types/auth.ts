@@ -41,6 +41,7 @@ export interface User {
     id: number
     nome: string
     fantasia: string
+    cnpj_cpf: string
   }
 }
 

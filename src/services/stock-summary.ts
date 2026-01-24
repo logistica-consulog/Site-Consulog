@@ -10,14 +10,24 @@ export const stockSummaryService = {
     // Check cache first
     const cacheKey = cacheManager.createKey('stock-summary', filters)
     const cachedData = cacheManager.get<StockSummaryDisplay[]>(cacheKey)
-    
+
     if (cachedData) {
       return cachedData
     }
-    
+
     try {
       const params = new URLSearchParams()
-      
+
+      // Get cnpj_cpf from auth storage
+      const authStorage = localStorage.getItem('auth-storage')
+      if (authStorage) {
+        const authData = JSON.parse(authStorage)
+        const cnpjCpf = authData?.state?.user?.empresa?.cnpj_cpf
+        if (cnpjCpf) {
+          params.append('depositante_cnpj', cnpjCpf)
+        }
+      }
+
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null && value !== '') {

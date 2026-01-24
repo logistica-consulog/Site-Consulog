@@ -29,7 +29,8 @@ export const useAuthStore = create<AuthStateWithTimestamp>()(
         empresa: {
           id: response.data.data.empresa.id,
           nome: response.data.data.empresa.xnome,
-          fantasia: response.data.data.empresa.xfant
+          fantasia: response.data.data.empresa.xfant,
+          cnpj_cpf: response.data.data.empresa.cnpj_cpf
         }
       }
       
