@@ -5,6 +5,25 @@ import { formatters } from '@/utils/formatters'
 
 const CACHE_TTL = 120000 // 2 minutes
 
+function getAuthenticatedClientId(): number | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const authStorage = localStorage.getItem('auth-storage')
+  if (!authStorage) {
+    return null
+  }
+
+  try {
+    const authData = JSON.parse(authStorage)
+    return authData?.state?.user?.id ?? null
+  } catch (error) {
+    console.error('Error parsing auth client id:', error)
+    return null
+  }
+}
+
 export const ordersService = {
   async getOrders(
     page: number = 1,
@@ -12,7 +31,8 @@ export const ordersService = {
     filters?: OrderFilters
   ): Promise<OrdersPaginatedResponse> {
     // Simple cache key - only for ALL data (no filters in cache key)
-    const cacheKey = cacheManager.createKey('orders', { all: true })
+    const clientId = getAuthenticatedClientId()
+    const cacheKey = cacheManager.createKey('orders', { all: true, clientId })
     const cachedData = cacheManager.get<OrdersPaginatedResponse>(cacheKey)
 
     if (cachedData) {

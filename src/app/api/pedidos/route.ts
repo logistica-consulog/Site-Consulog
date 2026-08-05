@@ -10,14 +10,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const authorization = request.headers.get('authorization')
+    const clientId = request.headers.get('x-client-id')
 
     const token = extractAuthToken(authorization)
-    if (!token) {
+    if (!token || !clientId) {
       return createUnauthorizedResponse()
     }
 
-    // Add token as query parameter
+    // Add token and client id as query parameters
     searchParams.set('token', token)
+    searchParams.set('search', `cliente:${clientId}`)
 
     // Add default pagination if not provided
     if (!searchParams.has('page')) {

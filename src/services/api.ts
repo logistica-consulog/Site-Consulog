@@ -19,6 +19,9 @@ api.interceptors.request.use((config) => {
       if (auth.state?.token) {
         config.headers.Authorization = `Bearer ${auth.state.token}`
       }
+      if (auth.state?.user?.id) {
+        config.headers['X-Client-Id'] = String(auth.state.user.id)
+      }
     } catch (error) {
       console.error('Error parsing auth token:', error)
     }
