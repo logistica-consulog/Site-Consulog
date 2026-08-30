@@ -2,8 +2,11 @@ import {
   OrderFilters,
   OrderLotesPaginatedResponse,
   OrderLotesGeralResponse,
+  OrderEncerradosResponse,
   OrderLoteDisplay,
-  OrderLote
+  OrderLote,
+  Order,
+  OrderItem
 } from '@/types/orders'
 import api from './api'
 import { cacheManager } from '@/utils/cache'
@@ -20,7 +23,8 @@ const CACHE_TTL = 120000 // 2 minutes
 export const ordersLotesService = {
   /**
    * Busca todos os pedidos com detalhes de lotes
-   * Faz múltiplas requisições para buscar todas as páginas do endpoint
+   * Faz múltiplas requisições para buscar todas as páginas dos endpoints
+   * /pedidos/lotes/geral e /pedidos/encerrados
    * Cacheia todos os dados e aplica filtros/paginação em memória
    */
   async getOrdersWithLotes(
@@ -29,22 +33,39 @@ export const ordersLotesService = {
     filters?: OrderFilters
   ): Promise<OrderLotesPaginatedResponse> {
     // Cache key simples - apenas para TODOS os dados (sem filtros na chave)
-    const cacheKey = cacheManager.createKey('orders-lotes-geral', { all: true })
+    const cacheKey = cacheManager.createKey('orders-lotes-combined', { all: true })
     const cachedData = cacheManager.get<OrderLotesPaginatedResponse>(cacheKey)
 
     if (cachedData) {
-      console.log('✅ Usando cache de lotes/geral')
+      console.log('✅ Usando cache de pedidos combinados')
       return this.applyFiltersInMemory(cachedData, filters, page, limit)
     }
 
     try {
       console.log('🔄 Buscando todos os pedidos de /pedidos/lotes/geral...')
 
-      // Buscar todos os pedidos (sem paginação na API)
-      // O endpoint retorna paginado, mas vamos buscar todas as páginas
-      const allLotes = await this.fetchAllLotesPages()
+      // Buscar todos os pedidos do endpoint /pedidos/lotes/geral
+      const geralLotes = await this.fetchAllLotesPages()
 
-      console.log(`📋 ${allLotes.length} pedidos encontrados no total`)
+      console.log(`📋 ${geralLotes.length} pedidos encontrados em /pedidos/lotes/geral`)
+
+      let encerradosLotes: OrderLote[] = []
+      try {
+        console.log('🔄 Buscando todos os pedidos de /pedidos/encerrados...')
+
+        // Buscar todos os pedidos do endpoint /pedidos/encerrados
+        encerradosLotes = await this.fetchAllEncerradosPages()
+
+        console.log(`📋 ${encerradosLotes.length} pedidos encontrados em /pedidos/encerrados`)
+      } catch (error) {
+        console.warn('⚠️ Erro ao buscar pedidos encerrados, continuando apenas com pedidos gerais:', error)
+        // Continuar com apenas os pedidos gerais se o endpoint de encerrados falhar
+      }
+
+      // Combinar os dados de ambos os endpoints
+      const allLotes = [...geralLotes, ...encerradosLotes]
+
+      console.log(`📋 ${allLotes.length} pedidos encontrados no total (combinado)`)
 
       // Transformar para formato de display
       const displayLotes = allLotes.map(lote => this.transformLoteToDisplay(lote))
@@ -84,7 +105,7 @@ export const ordersLotesService = {
       const params = new URLSearchParams()
       params.append('page', currentPage.toString())
 
-      console.log(`📄 Buscando página ${currentPage}...`)
+      console.log(`📄 Buscando página ${currentPage} de /pedidos/lotes/geral...`)
 
       const response = await api.get<OrderLotesGeralResponse>(
         `/pedidos/lotes/geral?${params.toString()}`
@@ -107,6 +128,67 @@ export const ordersLotesService = {
     }
 
     return allLotes
+  },
+
+  /**
+   * Busca todos os pedidos do endpoint /pedidos/encerrados
+   * Este endpoint retorna Order[] diretamente, não OrderLote[]
+   * Precisamos transformar para OrderLote para compatibilidade
+   */
+  async fetchAllEncerradosPages(): Promise<OrderLote[]> {
+    console.log(`📄 Buscando pedidos de /pedidos/encerrados...`)
+
+    const response = await api.get<OrderEncerradosResponse>(`/pedidos/encerrados`)
+
+    if (!response.data.success || !response.data.data) {
+      console.error('❌ Resposta inválida da API:', response.data)
+      return []
+    }
+
+    const orders = response.data.data
+    console.log(`📋 ${orders.length} pedidos encontrados em /pedidos/encerrados`)
+
+    // Transformar Order para OrderLote
+    const lotes = orders.map(order => this.transformOrderToLote(order))
+
+    return lotes
+  },
+
+  /**
+   * Transforma Order (endpoint /pedidos/encerrados) em OrderLote
+   * Para manter compatibilidade com o formato existente
+   */
+  transformOrderToLote(order: Order): OrderLote {
+    // Transformar itens de OrderItemBasic para OrderItem
+    const itens: OrderItem[] = (order.itens || order.pedido_items || []).map(item => ({
+      produto: item.prod_cprod,
+      prod_xprod: item.prod_xprod,
+      hunit: item.hunit,
+      lote: item.lote || '',
+      endereco: item.endereco || '',
+      qtde_solicitada: item.prod_qcom,
+      qtde_separada: item.prod_qcom_conf || '0',
+      peso_liquido_total: '0',
+      peso_bruto_total: '0'
+    }))
+
+    return {
+      id: order.id,
+      pedido: order.pedido_venda || order.id.toString(),
+      num_carga: order.num_carga,
+      volumes: null,
+      nota_fiscal: order.nota_fiscal || '',
+      serie_nota_fiscal: order.serie_nota_fiscal || '',
+      data_add: order.data_add,
+      situacao: 'Encerrado',
+      cod_status: order.status_id,
+      status_produtos: 'Finalizado',
+      produtos_separados: 'S',
+      editado: order.editado,
+      status: order.status === 'F' ? 'Finalizado' : order.status,
+      itens: itens,
+      endereco_entregas: order.endereco_entregas || null
+    }
   },
 
   /**

@@ -173,6 +173,13 @@ export interface OrderLotesGeralResponse {
   errors?: string[]
 }
 
+// Resposta do endpoint /pedidos/encerrados (lista de pedidos encerrados)
+export interface OrderEncerradosResponse {
+  success: boolean
+  data: Order[]
+  message?: string
+}
+
 export interface OrderItem {
   produto: string // Código do produto
   prod_xprod?: string // Descrição do produto
