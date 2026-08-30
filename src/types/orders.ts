@@ -175,6 +175,7 @@ export interface OrderLotesGeralResponse {
 
 export interface OrderItem {
   produto: string // Código do produto
+  prod_xprod?: string // Descrição do produto
   hunit: number
   lote: string
   endereco: string

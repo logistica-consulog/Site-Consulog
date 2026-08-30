@@ -24,9 +24,16 @@ export function OrderItemsModal({
     return num % 1 === 0 ? num.toString() : num.toFixed(2)
   }
 
+  const formatProductDescription = (description: string | undefined) => {
+    if (!description) return '-'
+    // Extract only the descriptive text after " - "
+    const parts = description.split(' - ')
+    return parts.length > 1 ? parts[1].trim() : description
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl max-w-8xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
@@ -66,6 +73,9 @@ export function OrderItemsModal({
                       Produto
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Descrição
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Lote
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -95,6 +105,9 @@ export function OrderItemsModal({
                         <div className="text-xs text-gray-500">
                           HU: {item.hunit}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatProductDescription(item.prod_xprod)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.lote || '-'}
