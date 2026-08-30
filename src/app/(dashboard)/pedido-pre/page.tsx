@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { ProductAutocomplete } from '@/components/ui/ProductAutocomplete'
 import { Plus, Trash2, Save, FileText } from 'lucide-react'
 import { pedidoPreService } from '@/services/pedido-pre'
+import { useAuthStore } from '@/store/auth'
 import {
   CreatePedidoPreRequest,
   PedidoFormData,
@@ -14,6 +15,9 @@ import {
 } from '@/types/pedido-pre'
 
 export default function PedidoPrePage() {
+  const { user } = useAuthStore()
+  const initialCNPJ = user?.empresa?.cnpj_cpf || ''
+
   const [formData, setFormData] = useState<CreatePedidoPreRequest>({
     pedidos: [
       {
@@ -21,7 +25,7 @@ export default function PedidoPrePage() {
         nota_fiscal: '',
         serie: '',
         chave_acesso: '',
-        cliente: '',
+        cliente: initialCNPJ,
         pedido: '',
         observacao: '',
         prefixo: '1', // Default: Pedido de Venda
