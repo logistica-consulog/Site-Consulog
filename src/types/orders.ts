@@ -309,11 +309,11 @@ export interface OrdersPaginatedResponse {
 }
 
 export const ORDER_STATUS_COLORS: Record<string, string> = {
-  'Pendente': 'warning',
-  'Aguardando Separação': 'warning',
-  'Em separação': 'info',
-  'Aguardando conferência': 'warning',
-  'Em conferência': 'info',
-  'Aguardando carregamento': 'info',
+  'Pendente': 'yellow',
+  'Aguardando Separação': 'orange',
+  'Em Separação': 'purple',
+  'Aguardando Conferencia': 'yellow',
+  'Em Conferencia': 'indigo',
+  'Aguardando Carregamento': 'cyan',
   'Finalizado': 'success'
 }
