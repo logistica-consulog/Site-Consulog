@@ -152,7 +152,7 @@ export default function PedidoPrePage() {
   return (
     <>
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
             <div className="flex items-center justify-between">
               <div>
@@ -179,7 +179,7 @@ export default function PedidoPrePage() {
       </div>
 
       {/* Form Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {success && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
             {success}
